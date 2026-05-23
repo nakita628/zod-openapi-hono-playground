@@ -1,0 +1,14 @@
+{
+  "name": "zod-openapi-hono-playground",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "deps": "mkdir -p /tmp/pnpm-store && pnpm config set store-dir /tmp/pnpm-store && rm -rf node_modules && rm -rf pnpm-lock.yaml && rm -rf ~/.pnpm-store && pnpm store prune && pnpm install --no-prefer-frozen-lockfile",
+    "check": "vp check --fix"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react-swc": "^4.3.1",
+    "vite-plus": "^0.1.22",
+    "vite-tsconfig-paths": "^6.1.1"
+  }
+}
