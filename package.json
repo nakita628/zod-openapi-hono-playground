@@ -2,13 +2,31 @@
   "name": "zod-openapi-hono-playground",
   "type": "module",
   "scripts": {
+    "build": "vite build",
+    "preview": "vite build && wrangler dev",
+    "deploy": "vite build && wrangler deploy",
     "dev": "vite --host",
     "deps": "mkdir -p /tmp/pnpm-store && pnpm config set store-dir /tmp/pnpm-store && rm -rf node_modules && rm -rf pnpm-lock.yaml && rm -rf ~/.pnpm-store && pnpm store prune && pnpm install --no-prefer-frozen-lockfile",
     "check": "vp check --fix"
   },
+  "dependencies": {
+    "@iconify/react": "^6.0.2",
+    "@monaco-editor/react": "^4.7.0",
+    "@scalar/api-reference-react": "^0.9.41",
+    "@tailwindcss/vite": "^4.3.0",
+    "esbuild-wasm": "^0.28.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-resizable-panels": "^4.11.1",
+    "tailwindcss": "^4.3.0"
+  },
   "devDependencies": {
-    "@vitejs/plugin-react-swc": "^4.3.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "monaco-editor": "^0.55.1",
+    "vite": "^8.0.14",
     "vite-plus": "^0.1.22",
-    "vite-tsconfig-paths": "^6.1.1"
+    "wrangler": "^4.94.0"
   }
 }

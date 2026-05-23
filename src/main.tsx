@@ -4,12 +4,12 @@ import { createRoot } from 'react-dom/client'
 import App from '@/app'
 
 const rootElement = document.getElementById('root')
-const root = rootElement ? createRoot(rootElement) : console.error('Root element not found')
-
-if (root) {
-  root.render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
+if (!rootElement) {
+  throw new Error('Root element #root not found')
 }
+
+createRoot(rootElement).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)

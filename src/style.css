@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-vs-bg: #252526;
+  --color-vs-bg-active: #37373d;
+  --color-vs-text: #cccccc;
+  --color-vs-border: #1e1e1e;
+  --color-vs-accent: #007acc;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
