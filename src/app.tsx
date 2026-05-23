@@ -30,7 +30,8 @@ export const getRouteHandler: RouteHandler<typeof getRoute> = async (c) => {
   return c.json({ message: 'Hono🔥' })
 }
 `,
-  'route.ts': `import { createRoute, z } from '@hono/zod-openapi'
+  'route.ts': `import { createRoute } from '@hono/zod-openapi'
+import * as z from 'zod'
 
 export const getRoute = createRoute({
   method: 'get',
