@@ -1,11 +1,14 @@
-import { Icon } from '@iconify/react'
 import Editor, { useMonaco, type OnMount } from '@monaco-editor/react'
 import { ApiReferenceReact } from '@scalar/api-reference-react'
 
 import '@scalar/api-reference-react/style.css'
 import type { AnyApiReferenceConfiguration } from '@scalar/api-reference-react'
 import type { editor } from 'monaco-editor'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Tree, type NodeRendererProps } from 'react-arborist'
+import type { IconType } from 'react-icons'
+import { SiTypescript } from 'react-icons/si'
+import { VscChevronDown, VscChevronRight, VscFolder, VscFolderOpened } from 'react-icons/vsc'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 
 import { getBundledDts, runUserCode } from '@/lib'
@@ -68,6 +71,51 @@ const useIsDesktop = () => {
   return isDesktop
 }
 
+type FileNode = {
+  readonly id: string
+  readonly name: string
+  readonly children?: readonly FileNode[]
+}
+
+const TREE_DATA: readonly FileNode[] = [
+  {
+    id: 'src',
+    name: 'src',
+    children: fileNames.map((name) => ({ id: name, name })),
+  },
+]
+
+const isPlaygroundFile = (id: string): id is (typeof fileNames)[number] =>
+  id === 'index.ts' || id === 'handler.ts' || id === 'route.ts'
+
+const FileNodeRow = ({ node, style }: NodeRendererProps<FileNode>) => {
+  const Caret: IconType | null = node.isInternal
+    ? node.isOpen
+      ? VscChevronDown
+      : VscChevronRight
+    : null
+  const Icon: IconType = node.isInternal
+    ? node.isOpen
+      ? VscFolderOpened
+      : VscFolder
+    : SiTypescript
+  return (
+    <div
+      style={style}
+      onClick={() => (node.isInternal ? node.toggle() : node.select())}
+      className={`flex h-full cursor-pointer items-center gap-1.5 pr-3 font-sans text-[13px] text-vs-text ${
+        node.isSelected && node.isLeaf ? 'bg-vs-bg-active' : 'hover:bg-vs-bg-active/50'
+      }`}
+    >
+      <span className="inline-flex w-4 shrink-0 items-center justify-center">
+        {Caret ? <Caret size={14} /> : null}
+      </span>
+      <Icon size={14} className="shrink-0" {...(node.isLeaf ? { color: '#3178C6' } : {})} />
+      <span className="truncate">{node.data.name}</span>
+    </div>
+  )
+}
+
 const FileTree = ({
   active,
   onSelect,
@@ -75,35 +123,40 @@ const FileTree = ({
   readonly active: 'index.ts' | 'handler.ts' | 'route.ts'
   readonly onSelect: (name: 'index.ts' | 'handler.ts' | 'route.ts') => void
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState(0)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setHeight(entry.contentRect.height)
+    })
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <div className="h-full overflow-auto bg-vs-bg py-2 font-sans text-[13px] text-vs-text select-none">
-      <div className="flex items-center gap-2 px-3 py-1 font-semibold">
-        <Icon
-          icon="vscode-icons:default-folder-opened"
-          width="16"
-          height="16"
-          className="shrink-0"
-        />
-        src
-      </div>
-      {fileNames.map((name) => (
-        <button
-          key={name}
-          type="button"
-          onClick={() => onSelect(name)}
-          className={`flex w-full cursor-pointer items-center gap-2 border-0 py-1 pr-3 pl-7 text-left text-vs-text ${
-            name === active ? 'bg-vs-bg-active' : 'bg-transparent'
-          }`}
-        >
-          <Icon
-            icon="vscode-icons:file-type-typescript"
-            width="16"
-            height="16"
-            className="shrink-0"
-          />
-          {name}
-        </button>
-      ))}
+    <div ref={containerRef} className="h-full">
+      <Tree<FileNode>
+        data={TREE_DATA}
+        openByDefault
+        width="100%"
+        height={height}
+        rowHeight={26}
+        indent={16}
+        selection={active}
+        onActivate={(node) => {
+          if (!node.isLeaf) return
+          if (isPlaygroundFile(node.id)) onSelect(node.id)
+        }}
+        disableMultiSelection
+        disableDrag
+        disableDrop
+        disableEdit
+      >
+        {FileNodeRow}
+      </Tree>
     </div>
   )
 }
