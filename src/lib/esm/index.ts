@@ -1,12 +1,17 @@
-export async function getBundledDts(moduleName: string) {
+export async function getBundledDts(
+  moduleName: string,
+  augmentBody = '',
+  augmentTargetMarker = '',
+  excludeModulePrefixes: readonly string[] = [],
+) {
   const ESM_URL_PATTERN =
     /^https:\/\/esm\.sh\/(?:v\d+\/)?(@?[\w.-]+(?:\/[\w.-]+)?)(?:@[\w.\-+]+)?(\/[^?]*)?(?:\?.*)?$/
 
   const normalizeModulePath = (url: string) => {
     const matched = ESM_URL_PATTERN.exec(url)
-    if (!matched) return (url.split('?')[0] ?? url).replace(/\.d\.ts$/, '')
+    if (!matched) return (url.split('?')[0] ?? url).replace(/\.d\.[mc]?ts$/, '')
     const pkg = matched[1] ?? ''
-    const subpath = (matched[2] ?? '').replace(/\.d\.ts$/, '')
+    const subpath = (matched[2] ?? '').replace(/\.d\.[mc]?ts$/, '')
     return `${pkg}${subpath}`
   }
 
@@ -19,7 +24,7 @@ export async function getBundledDts(moduleName: string) {
     const dts = res.ok ? await res.text() : ''
     const dtsImports = Array.from(dts.matchAll(/from\s+["']([^"']+)["']/g))
       .map((match) => match[1] ?? '')
-      .filter((p) => p.endsWith('.d.ts'))
+      .filter((p) => /\.d\.[mc]?ts$/.test(p))
     const resolvedUrls = dtsImports.map((p) => new URL(p, rootUrl).toString())
     const rewritten = dtsImports.reduce(
       (acc, original, index) =>
@@ -38,8 +43,20 @@ export async function getBundledDts(moduleName: string) {
   const indexDtsUrl = res.headers.get('x-typescript-types')
   if (!indexDtsUrl) return ''
   const files = await walkDts(indexDtsUrl, new Map())
+  const indexModulePath = normalizeModulePath(indexDtsUrl)
   const declarations = Array.from(files.entries())
+    .filter(([url]) => {
+      const path = normalizeModulePath(url)
+      return !excludeModulePrefixes.some(
+        (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+      )
+    })
     .map(([url, dts]) => `declare module "${normalizeModulePath(url)}"{${dts}}`)
     .join('\n')
-  return `${declarations}\ndeclare module "${moduleName}" {export * from "${normalizeModulePath(indexDtsUrl)}"}`
+  const augmentTargetUrl = augmentTargetMarker
+    ? Array.from(files.entries()).find(([_url, dts]) => dts.includes(augmentTargetMarker))?.[0]
+    : undefined
+  const augmentTarget = augmentTargetUrl ? normalizeModulePath(augmentTargetUrl) : indexModulePath
+  const augment = augmentBody ? `declare module "${augmentTarget}"{${augmentBody}}` : ''
+  return `${declarations}\n${augment}\ndeclare module "${moduleName}" {export * from "${indexModulePath}"}`
 }

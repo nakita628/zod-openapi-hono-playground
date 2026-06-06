@@ -33,8 +33,7 @@ export const getRouteHandler: RouteHandler<typeof getRoute> = async (c) => {
   return c.json({ message: 'Hono🔥' })
 }
 `,
-  'route.ts': `import { createRoute } from '@hono/zod-openapi'
-import * as z from 'zod'
+  'route.ts': `import { createRoute, z } from '@hono/zod-openapi'
 
 export const getRoute = createRoute({
   method: 'get',
@@ -57,6 +56,13 @@ const extraLibModules = [
   { name: '@hono/zod-openapi', path: 'file:///node_modules/@hono/zod-openapi/index.d.ts' },
   { name: 'zod', path: 'file:///node_modules/zod/index.d.ts' },
 ] as const
+
+const ZOD_OPENAPI_AUGMENT_BODY = `
+  interface ZodType {
+    openapi(refId: string, metadata?: Record<string, unknown>): this
+    openapi(metadata: Record<string, unknown>): this
+  }
+`
 
 const fileUri = (name: 'index.ts' | 'handler.ts' | 'route.ts') => `file:///src/${name}`
 
@@ -198,7 +204,10 @@ const CodeEditor = ({
 
     void Promise.all(
       extraLibModules.map(async ({ name, path }) => {
-        const dts = await getBundledDts(name)
+        const augment = name === 'zod' ? ZOD_OPENAPI_AUGMENT_BODY : ''
+        const marker = name === 'zod' ? 'interface ZodType' : ''
+        const exclude = name === '@hono/zod-openapi' ? ['zod'] : []
+        const dts = await getBundledDts(name, augment, marker, exclude)
         if (dts) typescriptDefaults.addExtraLib(dts, path)
       }),
     )
